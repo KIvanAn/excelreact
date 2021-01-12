@@ -1,4 +1,5 @@
 import {DEFAULT_HEIGHT, DEFAULT_WIDTH} from '../constants'
+import {Parser} from 'expr-eval'
 
 export function storageName(param) {
     return 'excel:' + param
@@ -55,7 +56,7 @@ export function nextSelector(key, {col, row}) {
             col = col - 1 < MIN_VALUE ? MIN_VALUE : col - 1
             break
         case 'ArrowUp':
-            row = row - 1 < MIN_VALUE ? MIN_VALUE : row - 1
+            row = row - 1 < 1 ? 1 : row - 1
             break
         default: return key
     }
@@ -66,7 +67,9 @@ export function nextSelector(key, {col, row}) {
 export function parse(value = '') {
     if (value.startsWith('=')) {
         try {
-            return eval(value.slice(1))
+            const parser = new Parser()
+            const expr = parser.parse(value.slice(1))
+            return expr.evaluate()
         } catch (e) {
             return value
         }

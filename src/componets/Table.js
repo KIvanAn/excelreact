@@ -1,4 +1,4 @@
-import React from 'react'
+import React, {useEffect} from 'react'
 import {createRows} from '../functions/createRows'
 import {applyStyle, changeStyles, changeText, tableResize} from '../redux/actions'
 import {connect} from 'react-redux'
@@ -8,38 +8,34 @@ import {TableSelection} from '../functions/TableSelection'
 import {$} from '../functions/Jquery'
 import {defaultStyles} from '../redux/initialState'
 
-class Table extends React.Component {
-    constructor(props) {
-        super(props)
-        this.props = props
-        this.selection = new TableSelection()
-    }
+function Table(props) {
+    const selection = new TableSelection()
 
-    componentDidMount() {
-        this.selectCell($('[data-id="1:0"]'))
+    useEffect(() => {
+        selectCell($('[data-id="1:0"]'))
 
-        this.props.observer.subscribe('formula:input', value => {
-            this.selection.current.attr('data-value', value).text(parse(value))
-            this.props.changeText({
-                id: this.selection.current.id(),
-                value: this.selection.current.text()
+        props.observer.subscribe('formula:input', value => {
+            selection.current.attr('data-value', value).text(parse(value))
+            props.changeText({
+                id: selection.current.id(),
+                value: selection.current.text()
             })
         })
 
-        this.props.observer.subscribe('formula:keydown', () => {
-            this.selection.current.focus()
+        props.observer.subscribe('formula:keydown', () => {
+            selection.current.focus()
         })
 
-        this.props.observer.subscribe('toolbar:applyStyle', value => {
-            this.selection.applyStyle(value)
-            this.props.applyStyle({
+        props.observer.subscribe('toolbar:applyStyle', value => {
+            selection.applyStyle(value)
+            props.applyStyle({
                 value,
-                ids: this.selection.selectedIds
+                ids: selection.selectedIds
             })
         })
-    }
+    })
 
-    async resizeTable(event, root, fn) {
+    async function resizeTable(event, root, fn) {
         try {
             const data = await resizing(event, root)
             fn(data)
@@ -48,40 +44,40 @@ class Table extends React.Component {
         }
     }
 
-    selectCell(cell) {
-        this.selection.select(cell)
-        this.props.observer.emit('table:select', cell)
+    function selectCell(cell) {
+        selection.select(cell)
+        props.observer.emit('table:select', cell)
 
         const styles = cell.getStyles(Object.keys(defaultStyles))
-        this.props.changeStyles(styles)
+        props.changeStyles(styles)
     }
 
-    mouseDownHandler(e) {
+    function mouseDownHandler(e) {
         if (e.target.dataset.resize) {
-            this.resizeTable(e, e.currentTarget, this.props.tableResize)
+            resizeTable(e, e.currentTarget, props.tableResize)
         } else if (e.target.dataset.type === 'cell') {
             const target = $(e.target)
             if (e.shiftKey) {
-                const cells = matrix(target, this.selection.current)
+                const cells = matrix(target, selection.current)
                     .map(id => {
                         return $(`[data-id="${id}"]`)
                     })
-                this.selection.selectGroup(cells)
+                selection.selectGroup(cells)
             } else {
-                this.selectCell(target)
+                selectCell(target)
             }
         }
     }
 
-    onInputHandler() {
-        this.props.changeText({
-            id: this.selection.current.id(),
-            value: this.selection.current.text()
+    function onInputHandler() {
+        props.changeText({
+            id: selection.current.id(),
+            value: selection.current.text()
         })
-        this.props.observer.emit('cell:input', this.selection.current.text())
+        props.observer.emit('cell:input', selection.current.text())
     }
 
-    onKeydownHandler(event) {
+    function onKeydownHandler(event) {
         const keys = [
             'Enter',
             'Tab',
@@ -95,24 +91,22 @@ class Table extends React.Component {
 
         if (keys.includes(key) && !event.shiftKey) {
             event.preventDefault()
-            const id = this.selection.current.id(true)
+            const id = selection.current.id(true)
             const next = $(nextSelector(key, id))
-            this.selectCell(next)
+            selectCell(next)
         }
     }
 
-    render() {
-        return (
-            <div
-                className="excel__table"
-                onMouseDown={(e) => this.mouseDownHandler(e)}
-                onInput={() => this.onInputHandler()}
-                onKeyDown={e => this.onKeydownHandler(e)}
-            >
-                {createRows(20)}
-            </div>
-        )
-    }
+    return (
+        <div
+            className="excel__table"
+            onMouseDown={(e) => mouseDownHandler(e)}
+            onInput={() => onInputHandler()}
+            onKeyDown={e => onKeydownHandler(e)}
+        >
+            {createRows(20)}
+        </div>
+    )
 }
 
 const mapDispatchToProps = {
